@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Prepare a particle star file for particle polish job.
 
 When to use:
