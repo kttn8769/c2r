@@ -13,6 +13,13 @@ from tqdm import tqdm
 
 from c2r import RelionMetaData
 
+POSE_COLS = (
+    '_rlnAngleRot',
+    '_rlnAngleTilt',
+    '_rlnAnglePsi',
+    '_rlnOriginXAngst',
+    '_rlnOriginYAngst'
+)
 
 def imgname_to_imgid(imgname, rm_uid=True):
     n, f = imgname.split('@')
@@ -53,23 +60,22 @@ def main():
         df_optics=md_relion.df_optics
     )
 
-    relion_cols = list(md_relion.df_particles.columns)
-    relion_imgname_idx = relion_cols.index('_rlnImageName')
-    relion_rot_idx = relion_cols.index('_rlnAngleRot')
-    relion_tilt_idx = relion_cols.index('_rlnAngleTilt')
-    relion_psi_idx = relion_cols.index('_rlnAnglePsi')
-    relion_x_idx = relion_cols.index('_rlnOriginXAngst')
-    relion_y_idx = relion_cols.index('_rlnOriginYAngst')
-    relion_data = md_relion.df_particles.to_numpy(copy=True)
-
+    print('Preparing....')
     csparc_cols = list(md_csparc.df_particles.columns)
-    csparc_imgname_idx = csparc_cols.index('_rlnImageName')
-    csparc_rot_idx = csparc_cols.index('_rlnAngleRot')
-    csparc_tilt_idx = csparc_cols.index('_rlnAngleTilt')
-    csparc_psi_idx = csparc_cols.index('_rlnAnglePsi')
-    csparc_x_idx = csparc_cols.index('_rlnOriginXAngst')
-    csparc_y_idx = csparc_cols.index('_rlnOriginYAngst')
     csparc_data = md_csparc.df_particles.to_numpy(copy=True)
+    csparc_pose_cols = [x for x in POSE_COLS if x in csparc_cols]
+    csparc_pose_idxs = [csparc_cols.index(x) for x in csparc_pose_cols]
+    csparc_imgname_idx = csparc_cols.index('_rlnImageName')
+
+    relion_cols = list(md_relion.df_particles.columns)
+    relion_data = md_relion.df_particles.to_numpy(copy=True)
+    for csparc_pose_col in csparc_pose_cols:
+        if csparc_pose_col not in relion_cols:
+            relion_cols.append(csparc_pose_col)
+            relion_data = np.concatenate((relion_data, np.empty((relion_data.shape[0], 1))), axis=1)
+    relion_pose_cols = csparc_pose_cols
+    relion_pose_idxs = [relion_cols.index(x) for x in relion_pose_cols]
+    relion_imgname_idx = relion_cols.index('_rlnImageName')
 
     out_cols = relion_cols
     out_data = []
@@ -85,8 +91,7 @@ def main():
         j = relion_id_dict[csparc_id]
         dst = np.copy(relion_data[j])
         src = csparc_data[i]
-        dst[[relion_rot_idx, relion_tilt_idx, relion_psi_idx, relion_x_idx, relion_y_idx]] = \
-            src[[csparc_rot_idx, csparc_tilt_idx, csparc_psi_idx, csparc_x_idx, csparc_y_idx]]
+        dst[relion_pose_idxs] = src[csparc_pose_idxs]
         out_data.append(dst)
 
     print('Converting to dataframe...')
