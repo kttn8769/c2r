@@ -2,22 +2,19 @@
 """Transfer pose parameters from a star file created by PyEM csparc2star.py to the original relion star file. No other parameters are transfered. Just poses (rot + trans). Particles not listed in the csparc star file are not included in the output star file.
 """
 
-from email import parser
 import os
 import sys
 import re
 import argparse
 
+import numpy as np
 import pandas as pd
-from yaml import parse
-
 from tqdm import tqdm
 
 from c2r import RelionMetaData
 
 
-def imgname_to_imgid(md, i, rm_uid=True):
-    imgname = md.df_particles.loc[i, '_rlnImageName']
+def imgname_to_imgid(imgname, rm_uid=True):
     n, f = imgname.split('@')
     if rm_uid:
         imgid = n + '@' + re.sub('^[0-9]+_', '', os.path.basename(f))
@@ -48,40 +45,52 @@ def parse_args():
 def main():
     args = parse_args()
 
+    print('Loading star files...')
     md_relion = RelionMetaData.load(args.relion_star)
     md_csparc = RelionMetaData.load(args.csparc_star)
     md_out = RelionMetaData(
-        df_particles=pd.DataFrame(columns=md_relion.df_particles.columns),
+        df_particles=None,
         df_optics=md_relion.df_optics
     )
 
+    relion_cols = list(md_relion.df_particles.columns)
+    relion_imgname_idx = relion_cols.index('_rlnImageName')
+    relion_rot_idx = relion_cols.index('_rlnAngleRot')
+    relion_tilt_idx = relion_cols.index('_rlnAngleTilt')
+    relion_psi_idx = relion_cols.index('_rlnAnglePsi')
+    relion_x_idx = relion_cols.index('_rlnOriginXAngst')
+    relion_y_idx = relion_cols.index('_rlnOriginYAngst')
+    relion_data = md_relion.df_particles.to_numpy(copy=True)
+
+    csparc_cols = list(md_csparc.df_particles.columns)
+    csparc_imgname_idx = csparc_cols.index('_rlnImageName')
+    csparc_rot_idx = csparc_cols.index('_rlnAngleRot')
+    csparc_tilt_idx = csparc_cols.index('_rlnAngleTilt')
+    csparc_psi_idx = csparc_cols.index('_rlnAnglePsi')
+    csparc_x_idx = csparc_cols.index('_rlnOriginXAngst')
+    csparc_y_idx = csparc_cols.index('_rlnOriginYAngst')
+    csparc_data = md_csparc.df_particles.to_numpy(copy=True)
+
+    out_cols = relion_cols
+    out_data = []
+
     print('Listing relion image id...')
-    relion_id_list = []
-    for i in range(len(md_relion.df_particles)):
-        relion_id_list.append(imgname_to_imgid(md_relion, i, rm_uid=False))
+    relion_id_dict = {}
+    for i in tqdm(range(relion_data.shape[0])):
+        relion_id_dict[imgname_to_imgid(relion_data[i, relion_imgname_idx], rm_uid=False)] = i
 
     print('Transfering poses....')
-    for i in tqdm(range(len(md_csparc.df_particles))):
-        csparc_id = imgname_to_imgid(md_csparc, i)
+    for i in tqdm(range(csparc_data.shape[0])):
+        csparc_id = imgname_to_imgid(csparc_data[i, csparc_imgname_idx], rm_uid=True)
+        j = relion_id_dict[csparc_id]
+        dst = np.copy(relion_data[j])
+        src = csparc_data[i]
+        dst[[relion_rot_idx, relion_tilt_idx, relion_psi_idx, relion_x_idx, relion_y_idx]] = \
+            src[[csparc_rot_idx, csparc_tilt_idx, csparc_psi_idx, csparc_x_idx, csparc_y_idx]]
+        out_data.append(dst)
 
-        relion_id_found = False
-        for relion_id in relion_id_list:
-            if csparc_id == relion_id:
-                j = len(md_out.df_particles)
-                md_out.df_particles.loc[j, :] = md_relion.df_particles.loc[i, :]
-                md_out.df_particles.loc[j, '_rlnAngleRot'] = \
-                    md_csparc.df_particles.loc[i, '_rlnAngleRot']
-                md_out.df_particles.loc[j, '_rlnAngleTilt'] = \
-                    md_csparc.df_particles.loc[i, '_rlnAngleTilt']
-                md_out.df_particles.loc[j, '_rlnAnglePsi'] = \
-                    md_csparc.df_particles.loc[i, '_rlnAnglePsi']
-                md_out.df_particles.loc[j, '_rlnOriginXAngst'] = \
-                    md_csparc.df_particles.loc[i, '_rlnOriginXAngst']
-                md_out.df_particles.loc[j, '_rlnOriginYAngst'] = \
-                    md_csparc.df_particles.loc[i, '_rlnOriginYAngst']
-                relion_id_found = True
-                break
-        assert relion_id_found
+    print('Converting to dataframe...')
+    md_out.df_particles = pd.DataFrame(out_data, columns=out_cols)
 
     print('Saving the output star file...')
     md_out.write(args.out_star)
