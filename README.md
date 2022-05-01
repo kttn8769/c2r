@@ -39,3 +39,27 @@ For example
 ```bash
 c2r_transfer_poses.py --relion_star particles.star --csparc_star from_csparc.star --out_star from_csparc_c2r.star --csparc_remove_uid
 ```
+
+### Assign optics groups to RELION particle star file
+#### Example
+* particles.star is the RELION particle star file, which has only one opticsGroup.
+* A user wants to assign different opticsGroups to them based on the filenames.
+
+* Here is a example of pattern file.
+  * syntax: <_rlnOpticsGroupName> <_rlnOpticsGroup> <File name pattern>
+```
+opticsGroup1 1 _0000_Nov
+opticsGroup2 2 _0001_Nov
+opticsGroup3 3 _0002_Nov
+opticsGroup4 4 _0003_Nov
+opticsGroup5 5 _0004_Nov
+opticsGroup6 6 _0005_Nov
+opticsGroup7 7 _0006_Nov
+opticsGroup8 8 _0007_Nov
+opticsGroup9 9 _0008_Nov
+```
+ 
+* Example command
+```bash
+c2r_assign_optics_group.py --outfile particles_with_opticsgroup.star --infile particles.star --pattern_file optics_pattern.txt
+```
