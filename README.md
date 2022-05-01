@@ -46,7 +46,8 @@ c2r_transfer_poses.py --relion_star particles.star --csparc_star from_csparc.sta
 * A user wants to assign different opticsGroups to them based on the filenames.
 
 * Here is a example of pattern file.
-  * syntax: <_rlnOpticsGroupName> <_rlnOpticsGroup> <File name pattern>
+  * syntax: [_rlnOpticsGroupName] [_rlnOpticsGroup] [File name pattern]
+
 ```
 opticsGroup1 1 _0000_Nov
 opticsGroup2 2 _0001_Nov
