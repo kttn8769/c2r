@@ -1,8 +1,7 @@
 """c2r common module
 """
 
-import os
-import datetime
+import sys
 import numpy as np
 import pandas as pd
 
@@ -10,19 +9,22 @@ class RelionMetaData:
     """RELION metadata handling class.
     Parameters
     ----------
-    df_particles : pandas.DataFrame
-        DataFrame containing particle data block contents.
+    df_data : pandas.DataFrame
+        DataFrame containing data block (data_particles or data_micrographs) contents.
     df_optics : pandas.DataFrame, optional
         DataFrame containing optics group data block contents. By default None
     starfile : string
         starfile name
+    data_type : string
+        'data_particles' or 'data_micrographs'
     """
-    def __init__(self, df_particles, df_optics=None, starfile=None):
+    def __init__(self, df_data, df_optics=None, starfile=None, data_type=None):
         # data_ block in RELION 2.x/3.0, data_particles block in RELION 3.1
-        self.df_particles = df_particles
+        self.df_data = df_data
         # data_optics block in RELION 3.1
         self.df_optics = df_optics
         self.starfile = starfile
+        self.data_type = data_type
 
     @classmethod
     def load(cls, starfile):
@@ -55,36 +57,49 @@ class RelionMetaData:
                     continue
             assert relion31 is not None, f'The starfile {starfile} is invalid.'
 
+            data_type = None
+            if relion31:
+                for line in f:
+                    words = line.strip().split()
+                    if len(words) == 0:
+                        continue
+                    elif len(words) == 1 and words[0].startswith('data_'):
+                        data_type = words[0]
+                        break
+                assert data_type is not None, f'Could not determine the data type of this starfile.'
+
         # Load starfile
         if relion31:
-            df_particles, df_optics = cls._load_relion31(starfile)
+            df_data, df_optics = cls._load_relion31(starfile, data_type)
         else:
-            df_particles = cls._load_relion(starfile)
+            df_data = cls._load_relion(starfile)
             df_optics = None
-        return cls(df_particles, df_optics, starfile)
+        return cls(df_data, df_optics, starfile, data_type)
 
     @classmethod
-    def _load_relion31(cls, starfile):
+    def _load_relion31(cls, starfile, data_type):
         """Load RELION 3.1 style starfile
         Parameters
         ----------
         starfile : string
             RELION 3.1 style star file
+        data_type : string
+            'data_particles' or 'data_micrographs'
         Returns
         -------
-        df_particles : pandas.DataFrame
-            dataframe containing particle data block
+        df_data : pandas.DataFrame
+            dataframe containing data block
         df_optics : pandas.DataFrame
             dataframe containing optics group data block.
         """
 
         with open(starfile, 'r') as f:
             headers_optics, data_optics = cls._read_block(f, 'data_optics')
-            headers_particles, data_particles = cls._read_block(
-                f, 'data_particles')
+            headers_data, data_data = cls._read_block(
+                f, data_type)
         df_optics = pd.DataFrame(data_optics, columns=headers_optics)
-        df_particles = pd.DataFrame(data_particles, columns=headers_particles)
-        return df_particles, df_optics
+        df_data = pd.DataFrame(data_data, columns=headers_data)
+        return df_data, df_optics
 
     @classmethod
     def _load_relion(cls, starfile):
@@ -159,9 +174,9 @@ class RelionMetaData:
         with open(outfile, 'w') as f:
             if self.df_optics is not None:
                 self._write_block(f, 'data_optics', self.df_optics)
-                self._write_block(f, 'data_particles', self.df_particles)
+                self._write_block(f, self.data_type, self.df_data)
             else:
-                self._write_block(f, 'data_', self.df_particles)
+                self._write_block(f, 'data_', self.df_data)
 
     def _write_block(self, f, blockname, df):
         """Write data block as star format
@@ -197,6 +212,7 @@ class RelionMetaData:
             New metadata object with the selected rows.
         """
 
-        df_particles_new = self.df_particles.iloc[idxs]
-        return self.__class__(df_particles=df_particles_new,
-                              df_optics=self.df_optics)
+        df_data_new = self.df_data.iloc[idxs]
+        return self.__class__(df_data=df_data_new,
+                              df_optics=self.df_optics,
+                              data_type=self.data_type)
