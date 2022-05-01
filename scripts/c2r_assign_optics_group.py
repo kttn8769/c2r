@@ -39,19 +39,19 @@ def create_data_optics_record(md, list_groupname, list_group):
     md.df_optics = df
 
 
-def modify_data_particles(md, list_group, list_pattern):
-    data_particles = md.df_particles.to_numpy(copy=False)
-    cols = list(md.df_particles.columns)
+def modify_data(md, list_group, list_pattern):
+    data = md.df_data.to_numpy(copy=False)
+    cols = list(md.df_data.columns)
     idx_mic = cols.index('_rlnMicrographName')
     idx_group = cols.index('_rlnOpticsGroup')
 
-    print('Modifying data_particles records....')
-    for i in tqdm(range(data_particles.shape[0])):
-        mic = data_particles[i, idx_mic]
+    print('Modifying data records....')
+    for i in tqdm(range(data.shape[0])):
+        mic = data[i, idx_mic]
         optics_found = False
         for group, pattern in zip(list_group, list_pattern):
             if pattern in mic:
-                data_particles[i, idx_group] = group
+                data[i, idx_group] = group
                 optics_found = True
                 break
         assert optics_found, f'None of the optics patterns matched. {mic}'
@@ -84,7 +84,7 @@ def main():
 
     create_data_optics_record(md, list_groupname, list_group)
 
-    modify_data_particles(md, list_group, list_pattern)
+    modify_data(md, list_group, list_pattern)
 
     print('Saving output star file...')
     md.write(args.outfile)
