@@ -54,7 +54,7 @@ def modify_data_particles(md, list_group, list_pattern):
                 data_particles[i, idx_group] = group
                 optics_found = True
                 break
-        assert optics_found
+        assert optics_found, f'None of the optics patterns matched. {mic}'
 
 
 def parse_args():
