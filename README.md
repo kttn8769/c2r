@@ -40,9 +40,9 @@ For example
 c2r_transfer_poses.py --relion_star particles.star --csparc_star from_csparc.star --out_star from_csparc_c2r.star --csparc_remove_uid
 ```
 
-### Assign optics groups to RELION particle star file
+### Assign optics groups to RELION particle/micrograph star file
 #### Example
-* particles.star is the RELION particle star file, which has only one opticsGroup.
+* particles.star/micrographs.star is the RELION particle/micrograph star file, which has only one opticsGroup.
 * A user wants to assign different opticsGroups to them based on the filenames.
 
 * Here is a example of pattern file.
