@@ -56,19 +56,20 @@ def main():
     md_relion = RelionMetaData.load(args.relion_star)
     md_csparc = RelionMetaData.load(args.csparc_star)
     md_out = RelionMetaData(
-        df_particles=None,
-        df_optics=md_relion.df_optics
+        df_data=None,
+        df_optics=md_relion.df_optics,
+        data_type='data_particles'
     )
 
     print('Preparing....')
-    csparc_cols = list(md_csparc.df_particles.columns)
-    csparc_data = md_csparc.df_particles.to_numpy(copy=True)
+    csparc_cols = list(md_csparc.df_data.columns)
+    csparc_data = md_csparc.df_data.to_numpy(copy=True)
     csparc_pose_cols = [x for x in POSE_COLS if x in csparc_cols]
     csparc_pose_idxs = [csparc_cols.index(x) for x in csparc_pose_cols]
     csparc_imgname_idx = csparc_cols.index('_rlnImageName')
 
-    relion_cols = list(md_relion.df_particles.columns)
-    relion_data = md_relion.df_particles.to_numpy(copy=True)
+    relion_cols = list(md_relion.df_data.columns)
+    relion_data = md_relion.df_data.to_numpy(copy=True)
     for csparc_pose_col in csparc_pose_cols:
         if csparc_pose_col not in relion_cols:
             relion_cols.append(csparc_pose_col)
@@ -95,7 +96,7 @@ def main():
         out_data.append(dst)
 
     print('Converting to dataframe...')
-    md_out.df_particles = pd.DataFrame(out_data, columns=out_cols)
+    md_out.df_data = pd.DataFrame(out_data, columns=out_cols)
 
     print('Saving the output star file...')
     md_out.write(args.out_star)
