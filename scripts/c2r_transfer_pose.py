@@ -23,6 +23,8 @@ POSE_COLS = (
 
 def imgname_to_imgid(imgname, rm_uid=True):
     n, f = imgname.split('@')
+    # shiny.star's n does not have any leading zeros. To avoid complexity, just always remove the leading zeros here.
+    n = n.lstrip('0')
     if rm_uid:
         imgid = n + '@' + re.sub('^[0-9]+_', '', os.path.basename(f))
     else:
