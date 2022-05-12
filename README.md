@@ -36,6 +36,7 @@ For example
 * particles.star is the original RELION particle star file.
 * from_csparc.star is the star file created with PyEM's csparc2star.py script.
 * UID is prepended to the micrograph name in from_csparc.star.
+* The random subset id (half1 or half2) will be also transfered by default (if it exists in csparc_star file)
 ```bash
 c2r_transfer_poses.py --relion_star particles.star --csparc_star from_csparc.star --out_star from_csparc_c2r.star --csparc_remove_uid
 ```
