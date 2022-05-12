@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Transfer pose parameters from a star file created by PyEM csparc2star.py to the original relion star file. No other parameters are transfered. Just poses (rot + trans). Particles not listed in the csparc star file are not included in the output star file.
+"""Transfer pose parameters (rot + trans) and random subset id (half1 or half2) from a star file created by PyEM csparc2star.py to the original relion star file. Particles not listed in the csparc star file are not included in the output star file.
 """
 
 import os
@@ -20,6 +20,7 @@ POSE_COLS = (
     '_rlnOriginXAngst',
     '_rlnOriginYAngst'
 )
+SUBSET_COL = '_rlnRandomSubset'
 
 def imgname_to_imgid(imgname, rm_uid=True):
     n, f = imgname.split('@')
@@ -41,6 +42,7 @@ def parse_args():
     parser.add_argument('--csparc_star', type=str, required=True, help='cryoSPARC star file created with PyEM csparc2star.py.')
     parser.add_argument('--out_star', type=str, required=True, help='Output star file.')
     parser.add_argument('--csparc_remove_uid', action='store_true', help='Remove the cryoSPARC micrograph UIDs.')
+    parser.add_argument('--dont_transfer_random_subset', action='store_true', help='Don\'t transfer _rlnRandomSubset to the output star file.')
     args = parser.parse_args()
 
     print('##### Command #####\n\t' + ' '.join(sys.argv))
@@ -67,6 +69,9 @@ def main():
     csparc_cols = list(md_csparc.df_data.columns)
     csparc_data = md_csparc.df_data.to_numpy(copy=True)
     csparc_pose_cols = [x for x in POSE_COLS if x in csparc_cols]
+    if not args.dont_transfer_random_subset:
+        if SUBSET_COL in csparc_cols:
+            csparc_pose_cols.append(SUBSET_COL)
     csparc_pose_idxs = [csparc_cols.index(x) for x in csparc_pose_cols]
     csparc_imgname_idx = csparc_cols.index('_rlnImageName')
 
