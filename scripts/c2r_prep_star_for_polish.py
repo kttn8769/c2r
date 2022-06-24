@@ -37,6 +37,9 @@ def parse_args():
     )
     parser.add_argument(
         '--motioncorr-data-dirs', required=True, nargs='+', help='List of motioncorr data directories, as relative path from the relion project directory.'
+    ),
+    parser.add_argument(
+        '--remove-uuid', action='store_true', help='Remove the preceding UUID of the image file names.'
     )
     args = parser.parse_args()
 
@@ -48,7 +51,7 @@ def parse_args():
     return args
 
 
-def main(in_star_file, out_star_file, relion_project_dir, motioncorr_data_dirs):
+def main(in_star_file, out_star_file, relion_project_dir, motioncorr_data_dirs, remove_uuid):
     # Assertions
     assert os.path.isdir(relion_project_dir), 'No such directory : {}'.format(relion_project_dir)
     assert os.path.exists(in_star_file), 'No such file exists : {}'.format(in_star_file)
@@ -99,8 +102,9 @@ def main(in_star_file, out_star_file, relion_project_dir, motioncorr_data_dirs):
                 break
 
             query_mic_name = os.path.basename(words[rlnMicrographName_index])
-            # Remove cryoSPARC UUID
-            query_mic_name = '_'.join(query_mic_name.split('_')[1:])
+            if remove_uuid:
+                # Remove cryoSPARC UUID
+                query_mic_name = '_'.join(query_mic_name.split('_')[1:])
 
             try:
                 mic_index = mic_names.index(query_mic_name)
@@ -120,4 +124,4 @@ def main(in_star_file, out_star_file, relion_project_dir, motioncorr_data_dirs):
 
 if __name__ == '__main__':
     args = parse_args()
-    main(args.in_star_file, args.out_star_file, args.relion_project_dir, args.motioncorr_data_dirs)
+    main(args.in_star_file, args.out_star_file, args.relion_project_dir, args.motioncorr_data_dirs, args.remove_uuid)
