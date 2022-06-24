@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from c2r import RelionMetaData
+import c2r
 
 POSE_COLS = (
     '_rlnAngleRot',
@@ -21,16 +21,6 @@ POSE_COLS = (
     '_rlnOriginYAngst'
 )
 SUBSET_COL = '_rlnRandomSubset'
-
-def imgname_to_imgid(imgname, rm_uid=True):
-    n, f = imgname.split('@')
-    # shiny.star's n does not have any leading zeros. To avoid complexity, just always remove the leading zeros here.
-    n = n.lstrip('0')
-    if rm_uid:
-        imgid = n + '@' + re.sub('^[0-9]+_', '', os.path.basename(f))
-    else:
-        imgid = n + '@' + os.path.basename(f)
-    return imgid
 
 
 def parse_args():
@@ -57,9 +47,9 @@ def main():
     args = parse_args()
 
     print('Loading star files...')
-    md_relion = RelionMetaData.load(args.relion_star)
-    md_csparc = RelionMetaData.load(args.csparc_star)
-    md_out = RelionMetaData(
+    md_relion = c2r.RelionMetaData.load(args.relion_star)
+    md_csparc = c2r.RelionMetaData.load(args.csparc_star)
+    md_out = c2r.RelionMetaData(
         df_data=None,
         df_optics=md_relion.df_optics,
         data_type='data_particles'
@@ -91,11 +81,11 @@ def main():
     print('Listing relion image id...')
     relion_id_dict = {}
     for i in tqdm(range(relion_data.shape[0])):
-        relion_id_dict[imgname_to_imgid(relion_data[i, relion_imgname_idx], rm_uid=False)] = i
+        relion_id_dict[c2r.imgname_to_imgid(relion_data[i, relion_imgname_idx], rm_uid=False)] = i
 
     print('Transfering poses....')
     for i in tqdm(range(csparc_data.shape[0])):
-        csparc_id = imgname_to_imgid(csparc_data[i, csparc_imgname_idx], rm_uid=True)
+        csparc_id = c2r.imgname_to_imgid(csparc_data[i, csparc_imgname_idx], rm_uid=True)
         j = relion_id_dict[csparc_id]
         dst = np.copy(relion_data[j])
         src = csparc_data[i]
