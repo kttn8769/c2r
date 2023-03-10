@@ -71,53 +71,65 @@ def main(in_star_file, out_star_file, relion_project_dir, motioncorr_data_dirs, 
 
     print('Now computing....')
     with open(in_star_file) as f:
-        out_star_contents = []
+        inlines = f.readlines()
 
-        # Read until data_particles
-        for line in f:
-            out_star_contents.append(line)
-            if line.startswith('data_particles'):
-                break
+    out_star_contents = []
+    i = 0
 
-        # Real until labels
-        for line in f:
-            out_star_contents.append(line)
-            if line.startswith('loop_'):
-                break
+    # Read until data_particles
+    for j in range(i, len(inlines)):
+        line = inlines[j]
+        i += 1
+        out_star_contents.append(line)
+        if line.startswith('data_particles'):
+            break
 
-        # Read labels, and find the label index of _rlnMicrographName
-        rlnMicrographName_index = None
-        for line in f:
-            if line.startswith('_rlnMicrographName'):
-                rlnMicrographName_index = int(line.split()[1].replace('#', '')) - 1
-            if not line.startswith('_rln'):
-                break
-            out_star_contents.append(line)
-        assert rlnMicrographName_index is not None, 'Could not find _rlnMicrographName in the data_particles block.'
+    # Real until labels
+    for j in range(i, len(inlines)):
+        line = inlines[j]
+        i += 1
+        out_star_contents.append(line)
+        if line.startswith('loop_'):
+            break
 
-        # Read data
-        for line in f:
-            words = line.split()
-            if len(words) == 0:
-                break
+    # Read labels, and find the label index of _rlnMicrographName
+    rlnMicrographName_index = None
+    for j in range(i, len(inlines)):
+        line = inlines[j]
+        i += 1
+        if line.startswith('_rlnMicrographName'):
+            rlnMicrographName_index = int(line.split()[1].replace('#', '')) - 1
+        if not line.startswith('_rln'):
+            i -= 1
+            break
+        out_star_contents.append(line)
+    assert rlnMicrographName_index is not None, 'Could not find _rlnMicrographName in the data_particles block.'
 
-            query_mic_name = os.path.basename(words[rlnMicrographName_index])
-            if remove_uuid:
-                # Remove cryoSPARC UUID
-                query_mic_name = '_'.join(query_mic_name.split('_')[1:])
+    # Read data
+    for j in range(i, len(inlines)):
+        line = inlines[j]
+        i += 1
+        words = line.split()
+        if len(words) == 0:
+            break
 
-            try:
-                mic_index = mic_names.index(query_mic_name)
-            except ValueError:
-                print('No file name match: {}'.format(query_mic_name), file=sys.stderr)
-                sys.exit()
+        query_mic_name = os.path.basename(words[rlnMicrographName_index])
+        if remove_uuid:
+            # Remove cryoSPARC UUID
+            query_mic_name = '_'.join(query_mic_name.split('_')[1:])
 
-            data_dir = data_dirs[mic_index]
-            mic_name = mic_names[mic_index]
+        try:
+            mic_index = mic_names.index(query_mic_name)
+        except ValueError:
+            print('No file name match: {}'.format(query_mic_name), file=sys.stderr)
+            sys.exit()
 
-            newline = ' '.join(words[:rlnMicrographName_index]) + ' ' + os.path.join(data_dir, mic_name) + ' ' + ' '.join(words[rlnMicrographName_index + 1:]) + '\n'
+        data_dir = data_dirs[mic_index]
+        mic_name = mic_names[mic_index]
 
-            out_star_contents.append(newline)
+        newline = ' '.join(words[:rlnMicrographName_index]) + ' ' + os.path.join(data_dir, mic_name) + ' ' + ' '.join(words[rlnMicrographName_index + 1:]) + '\n'
+
+        out_star_contents.append(newline)
 
     with open(out_star_file, 'w') as fo:
         fo.writelines(out_star_contents)
